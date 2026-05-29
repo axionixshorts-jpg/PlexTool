@@ -1,0 +1,61 @@
+export const colors = {
+  background: "#0B0B0F",
+  surface: "#15151C",
+  surfaceLight: "#1E1E2A",
+  cardBorder: "rgba(255,255,255,0.05)",
+  cardBorderLight: "rgba(255,255,255,0.08)",
+  primary: "#39FF88",
+  primaryDim: "rgba(57, 255, 136, 0.15)",
+  primaryGlow: "rgba(57, 255, 136, 0.3)",
+  secondary: "#00D1FF",
+  secondaryDim: "rgba(0, 209, 255, 0.15)",
+  textPrimary: "#FFFFFF",
+  textSecondary: "#A0A0A0",
+  textMuted: "#6B6B6B",
+  success: "#32FF7E",
+  successDim: "rgba(50, 255, 126, 0.15)",
+  error: "#FF4D67",
+  errorDim: "rgba(255, 77, 103, 0.15)",
+  warning: "#FFB547",
+  warningDim: "rgba(255, 181, 71, 0.15)",
+  divider: "rgba(255,255,255,0.06)",
+  overlay: "rgba(0,0,0,0.6)",
+  tabBar: "rgba(15, 15, 22, 0.95)",
+  inputBg: "#1A1A24",
+  inputBorder: "rgba(255,255,255,0.08)",
+  inputFocusBorder: "#39FF88",
+  skeleton: "#1E1E2A",
+  skeletonShine: "#2A2A38",
+};
+
+export const gradients = {
+  primary: ["#39FF88", "#00D1FF"],
+  primarySoft: ["rgba(57,255,136,0.2)", "rgba(0,209,255,0.2)"],
+  surface: ["#15151C", "#0B0B0F"],
+  card: ["rgba(30,30,42,0.8)", "rgba(21,21,28,0.8)"],
+  neon: ["#39FF88", "#2BD97A"],
+};
+
+export const shadows = {
+  primary: {
+    shadowColor: "#39FF88",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  card: {
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  soft: {
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+};
