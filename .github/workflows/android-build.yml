@@ -1,143 +1,69 @@
-name: 🤖 Android Build
+name: Android Build
 
 on:
   push:
     branches:
       - main
       - master
-  pull_request:
-    branches:
-      - main
-      - master
+
   workflow_dispatch:
-    inputs:
-      build_type:
-        description: 'Build type (apk or aab)'
-        required: true
-        default: 'apk'
-        type: choice
-        options:
-          - apk
-          - aab
 
 jobs:
   build-android:
-    name: Build Android APK / AAB
     runs-on: ubuntu-latest
 
     steps:
-      - name: 📥 Checkout repository
+      - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: ☕ Setup Java 17
+      - name: Setup Java 17
         uses: actions/setup-java@v4
         with:
-          java-version: '17'
-          distribution: 'temurin'
+          distribution: temurin
+          java-version: 17
           cache: gradle
 
-      - name: 🟢 Setup Node.js 20
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: apps/mobile/package-lock.json
+          node-version: 20
+          cache: npm
+          cache-dependency-path: anything/apps/mobile/package-lock.json
 
-      - name: 📦 Install mobile dependencies
-        working-directory: apps/mobile
-        run: npm ci
+      - name: Install Dependencies
+        working-directory: anything/apps/mobile
+        run: npm install
 
-      - name: 🤖 Setup Android SDK
+      - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: 📱 Install SDK platforms API 29-35 (Android 10-15)
+      - name: Install Android SDK Components
         run: |
           sdkmanager \
             "platforms;android-35" \
-            "platforms;android-34" \
-            "platforms;android-33" \
-            "platforms;android-32" \
-            "platforms;android-31" \
-            "platforms;android-30" \
-            "platforms;android-29" \
-            "build-tools;35.0.0" \
-            "ndk;26.1.10909125" \
-            --sdk_root=$ANDROID_SDK_ROOT
+            "build-tools;35.0.0"
 
-      - name: 🔑 Decode Keystore
-        if: ${{ secrets.KEYSTORE_BASE64 != '' }}
+      - name: Expo Prebuild Android
+        working-directory: anything/apps/mobile
         run: |
-          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > ${{ github.workspace }}/keystore.jks
+          npx expo prebuild --platform android --clean
 
-      - name: 🏗️ Expo Prebuild — Android only
-        working-directory: apps/mobile
-        run: npx expo prebuild --platform android --clean --no-install
-        env:
-          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      - name: Verify Android Folder
+        run: |
+          ls -la anything/apps/mobile
+          ls -la anything/apps/mobile/android
 
-      - name: 🔧 Make gradlew executable
-        working-directory: apps/mobile/android
+      - name: Make Gradle Executable
+        working-directory: anything/apps/mobile/android
         run: chmod +x gradlew
 
-      - name: 🔨 Build Release APK (signed)
-        if: ${{ github.event.inputs.build_type != 'aab' && secrets.KEYSTORE_BASE64 != '' }}
-        working-directory: apps/mobile/android
-        run: |
-          ./gradlew assembleRelease \
-            -Pandroid.injected.signing.store.file=${{ github.workspace }}/keystore.jks \
-            -Pandroid.injected.signing.store.password=${{ secrets.KEYSTORE_PASSWORD }} \
-            -Pandroid.injected.signing.key.alias=${{ secrets.KEY_ALIAS }} \
-            -Pandroid.injected.signing.key.password=${{ secrets.KEY_PASSWORD }} \
-            --no-daemon
-        env:
-          JAVA_HOME: ${{ env.JAVA_HOME }}
-
-      - name: 🔨 Build Debug APK (no signing keys set)
-        if: ${{ github.event.inputs.build_type != 'aab' && secrets.KEYSTORE_BASE64 == '' }}
-        working-directory: apps/mobile/android
+      - name: Build Debug APK
+        working-directory: anything/apps/mobile/android
         run: ./gradlew assembleDebug --no-daemon
-        env:
-          JAVA_HOME: ${{ env.JAVA_HOME }}
 
-      - name: 🔨 Build Release AAB (Play Store)
-        if: ${{ github.event.inputs.build_type == 'aab' }}
-        working-directory: apps/mobile/android
-        run: |
-          ./gradlew bundleRelease \
-            -Pandroid.injected.signing.store.file=${{ github.workspace }}/keystore.jks \
-            -Pandroid.injected.signing.store.password=${{ secrets.KEYSTORE_PASSWORD }} \
-            -Pandroid.injected.signing.key.alias=${{ secrets.KEY_ALIAS }} \
-            -Pandroid.injected.signing.key.password=${{ secrets.KEY_PASSWORD }} \
-            --no-daemon
-        env:
-          JAVA_HOME: ${{ env.JAVA_HOME }}
-
-      - name: 📤 Upload APK
-        if: ${{ github.event.inputs.build_type != 'aab' }}
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: CreatorHub-${{ github.run_number }}.apk
-          path: |
-            apps/mobile/android/app/build/outputs/apk/release/*.apk
-            apps/mobile/android/app/build/outputs/apk/debug/*.apk
-          if-no-files-found: warn
-          retention-days: 30
-
-      - name: 📤 Upload AAB
-        if: ${{ github.event.inputs.build_type == 'aab' }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: CreatorHub-${{ github.run_number }}.aab
-          path: apps/mobile/android/app/build/outputs/bundle/release/*.aab
-          if-no-files-found: warn
-          retention-days: 30
-
-      - name: 📋 Build Summary
-        run: |
-          echo "## ✅ Android Build Complete" >> $GITHUB_STEP_SUMMARY
-          echo "| Property | Value |" >> $GITHUB_STEP_SUMMARY
-          echo "|---|---|" >> $GITHUB_STEP_SUMMARY
-          echo "| **Java** | 17 (Temurin) |" >> $GITHUB_STEP_SUMMARY
-          echo "| **Min SDK** | Android 10 (API 29) |" >> $GITHUB_STEP_SUMMARY
-          echo "| **Target SDK** | Android 15 (API 35) |" >> $GITHUB_STEP_SUMMARY
-          echo "| **Build #** | ${{ github.run_number }} |" >> $GITHUB_STEP_SUMMARY
+          name: android-debug-apk
+          path: anything/apps/mobile/android/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
