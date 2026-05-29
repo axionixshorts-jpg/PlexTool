@@ -5,7 +5,6 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
-
     "android": {
       "package": "com.creatorhub.app",
       "versionCode": 1,
@@ -22,7 +21,6 @@
         "VIBRATE"
       ]
     },
-
     "plugins": [
       "expo-router",
       [
@@ -36,6 +34,15 @@
           }
         }
       ]
-    ]
+    ],
+    "ios": {
+      "bundleIdentifier": "com.creatorhub.app"
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "93d7e0f6-4dc4-4949-bc13-9e0fadd1e910"
+      }
+    }
   }
 }
