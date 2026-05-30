@@ -67,7 +67,7 @@ jobs:
       - name: Apply Gradle build tuning (post-prebuild)
         # `expo prebuild --clean` regenerates android/gradle.properties from the
         # Expo template (which only gives the Gradle JVM ~2 GB of heap). That is
-        # the root cause of the `:app:mergeExtDexDebug` D8 OutOfMemoryError.
+        # the root cause of the `:app:mergeExtDex*` D8 OutOfMemoryError.
         # Properties files are last-write-wins, so appending here overrides the
         # template defaults and guarantees enough heap for dex merging.
         working-directory: anything/apps/mobile/android
@@ -81,6 +81,11 @@ jobs:
             echo "org.gradle.caching=true"
             echo "org.gradle.configureondemand=true"
             echo "android.enableJetifier=false"
+            echo "# Keep the release APK un-minified so R8/ProGuard can't strip"
+            echo "# classes that React Native / native modules access reflectively."
+            echo "android.enableMinifyInReleaseBuilds=false"
+            echo "android.enableProguardInReleaseBuilds=false"
+            echo "android.enableShrinkResourcesInReleaseBuilds=false"
           } >> gradle.properties
           echo "----- effective gradle.properties -----"
           cat gradle.properties
@@ -94,13 +99,44 @@ jobs:
         working-directory: anything/apps/mobile/android
         run: chmod +x gradlew
 
-      - name: Build Debug APK
+      - name: Place google-services.json (post-prebuild)
+        # `expo prebuild --clean` wipes the whole android/ folder, so a
+        # google-services.json dropped into android/app/ does NOT survive CI.
+        # Commit it at anything/apps/mobile/google-services.json instead; this
+        # step copies it back into android/app/ after prebuild. Safe no-op when
+        # the file is absent (the app runs fine without it).
+        run: |
+          if [ -f google-services.json ]; then
+            cp google-services.json android/app/google-services.json
+            echo "Placed google-services.json into android/app/"
+          else
+            echo "No google-services.json at anything/apps/mobile/ — skipping (not required to run the app)."
+          fi
+
+      - name: Build Release APK
+        # A *release* APK embeds the JS bundle and sets __DEV__=false, so it runs
+        # standalone (no Metro dev server). A debug APK does the opposite and is
+        # why the installed app froze on the splash screen. Release is signed
+        # with the committed debug.keystore, so it installs without extra setup.
         working-directory: anything/apps/mobile/android
-        run: ./gradlew assembleDebug --no-daemon --stacktrace
+        env:
+          # EXPO_PUBLIC_* values are inlined into the JS bundle during this step
+          # (Metro `export:embed`). Set them as repository *Variables*
+          # (Settings > Secrets and variables > Actions > Variables) so the app
+          # can reach your backend. The build still succeeds if they are unset,
+          # but features needing the backend (login, data) won't work until set.
+          EXPO_PUBLIC_CREATE_ENV: ${{ vars.EXPO_PUBLIC_CREATE_ENV }}
+          EXPO_PUBLIC_BASE_URL: ${{ vars.EXPO_PUBLIC_BASE_URL }}
+          EXPO_PUBLIC_PROXY_BASE_URL: ${{ vars.EXPO_PUBLIC_PROXY_BASE_URL }}
+          EXPO_PUBLIC_PROJECT_GROUP_ID: ${{ vars.EXPO_PUBLIC_PROJECT_GROUP_ID }}
+          EXPO_PUBLIC_HOST: ${{ vars.EXPO_PUBLIC_HOST }}
+          EXPO_PUBLIC_UPLOADCARE_PUBLIC_KEY: ${{ vars.EXPO_PUBLIC_UPLOADCARE_PUBLIC_KEY }}
+          EXPO_PUBLIC_REVENUE_CAT_PLAY_STORE_API_KEY: ${{ vars.EXPO_PUBLIC_REVENUE_CAT_PLAY_STORE_API_KEY }}
+        run: ./gradlew assembleRelease --no-daemon --stacktrace
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: android-debug-apk
-          path: anything/apps/mobile/android/app/build/outputs/apk/debug/*.apk
+          name: android-release-apk
+          path: anything/apps/mobile/android/app/build/outputs/apk/release/*.apk
           if-no-files-found: error
