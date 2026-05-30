@@ -1,0 +1,40 @@
+{
+  "project_info": {
+    "project_number": "813172362251",
+    "firebase_url": "https://rexocollab-default-rtdb.asia-southeast1.firebasedatabase.app",
+    "project_id": "rexocollab",
+    "storage_bucket": "rexocollab.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:813172362251:android:ddccb1d20cac3254644b0e",
+        "android_client_info": {
+          "package_name": "com.rexoagency.plexcollab"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "813172362251-fm65b8g74cpjfqlqn97f1hlpivuiv66l.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAvmibq0p6gEDeqzxA1J5B4rz-cOKC_K7Q"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "813172362251-fm65b8g74cpjfqlqn97f1hlpivuiv66l.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
