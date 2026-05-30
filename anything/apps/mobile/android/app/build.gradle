@@ -95,6 +95,11 @@ android {
         versionCode 1
         versionName "1.0.0"
 
+        // Explicitly enable multidex. minSdk 29 already gets native multidex,
+        // but this keeps local (non-prebuild) builds safe well past the 64K
+        // method limit given the large number of native dependencies.
+        multiDexEnabled true
+
         buildConfigField "String", "REACT_NATIVE_RELEASE_LEVEL", "\"${findProperty('reactNativeReleaseLevel') ?: 'stable'}\""
     }
     signingConfigs {

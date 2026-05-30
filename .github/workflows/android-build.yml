@@ -8,9 +8,23 @@ on:
 
   workflow_dispatch:
 
+# Cancel superseded runs on the same ref to save CI minutes.
+concurrency:
+  group: android-build-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build-android:
     runs-on: ubuntu-latest
+
+    env:
+      # Keep CI noise down and make Expo non-interactive.
+      EXPO_NO_TELEMETRY: "1"
+      CI: "1"
+
+    defaults:
+      run:
+        working-directory: anything/apps/mobile
 
     steps:
       - name: Checkout Repository
@@ -20,37 +34,61 @@ jobs:
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: 17
+          java-version: "17"
+          cache: gradle
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: "20"
           cache: npm
           cache-dependency-path: anything/apps/mobile/package-lock.json
 
       - name: Install Dependencies
-        working-directory: anything/apps/mobile
-        run: npm install
+        # `npm install` (not `npm ci`) reconciles any lockfile drift instead of
+        # failing hard, which avoids the "npm ci / lockfile out of sync" errors.
+        run: npm install --no-audit --no-fund
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Install Android SDK Components
+      - name: Install Android SDK Components (API 36 for Expo SDK 54)
         run: |
+          yes | sdkmanager --licenses >/dev/null || true
           sdkmanager \
-            "platforms;android-35" \
-            "build-tools;35.0.0"
+            "platforms;android-36" \
+            "build-tools;36.0.0"
 
       - name: Expo Prebuild Android
-        working-directory: anything/apps/mobile
+        # --no-install: dependencies are already installed above.
+        # --clean: regenerate a pristine android/ folder.
+        run: npx expo prebuild --platform android --clean --no-install
+
+      - name: Apply Gradle build tuning (post-prebuild)
+        # `expo prebuild --clean` regenerates android/gradle.properties from the
+        # Expo template (which only gives the Gradle JVM ~2 GB of heap). That is
+        # the root cause of the `:app:mergeExtDexDebug` D8 OutOfMemoryError.
+        # Properties files are last-write-wins, so appending here overrides the
+        # template defaults and guarantees enough heap for dex merging.
+        working-directory: anything/apps/mobile/android
         run: |
-          npx expo prebuild --platform android --clean
+          {
+            echo ""
+            echo "# ===== Injected by CI after 'expo prebuild --clean' ====="
+            echo "# Large heap prevents D8 OutOfMemoryError during external dex merging."
+            echo "org.gradle.jvmargs=-Xmx6144m -XX:MaxMetaspaceSize=1024m -XX:+HeapDumpOnOutOfMemoryError -Dfile.encoding=UTF-8"
+            echo "org.gradle.parallel=true"
+            echo "org.gradle.caching=true"
+            echo "org.gradle.configureondemand=true"
+            echo "android.enableJetifier=false"
+          } >> gradle.properties
+          echo "----- effective gradle.properties -----"
+          cat gradle.properties
 
       - name: Verify Android Folder
         run: |
-          ls -la anything/apps/mobile
-          ls -la anything/apps/mobile/android
+          ls -la .
+          ls -la android
 
       - name: Make Gradle Executable
         working-directory: anything/apps/mobile/android
@@ -58,7 +96,7 @@ jobs:
 
       - name: Build Debug APK
         working-directory: anything/apps/mobile/android
-        run: ./gradlew assembleDebug --no-daemon
+        run: ./gradlew assembleDebug --no-daemon --stacktrace
 
       - name: Upload APK
         uses: actions/upload-artifact@v4

@@ -5,13 +5,14 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
+    "newArchEnabled": true,
     "android": {
       "package": "com.creatorhub.app",
       "versionCode": 1,
-      "compileSdkVersion": 35,
-      "targetSdkVersion": 35,
+      "compileSdkVersion": 36,
+      "targetSdkVersion": 36,
       "minSdkVersion": 29,
-      "buildToolsVersion": "35.0.0",
+      "buildToolsVersion": "36.0.0",
       "permissions": [
         "CAMERA",
         "READ_EXTERNAL_STORAGE",
@@ -27,10 +28,19 @@
         "expo-build-properties",
         {
           "android": {
-            "compileSdkVersion": 35,
-            "targetSdkVersion": 35,
+            "compileSdkVersion": 36,
+            "targetSdkVersion": 36,
             "minSdkVersion": 29,
-            "buildToolsVersion": "35.0.0"
+            "buildToolsVersion": "36.0.0",
+            "enableProguardInReleaseBuilds": false,
+            "enableShrinkResourcesInReleaseBuilds": false,
+            "packagingOptions": {
+              "pickFirst": [
+                "**/libc++_shared.so",
+                "**/libfbjni.so",
+                "**/libjsi.so"
+              ]
+            }
           }
         }
       ]
